@@ -1,0 +1,56 @@
+name: SSE CI/CD
+on: push
+
+jobs:
+
+  check-style:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - name: install clang-format
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y clang-format
+
+      - name: run clang-format
+        run: clang-format --dry-run --Werror tests/*.cpp src/*.cpp src/*.hpp
+    
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - name: install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential clang-format libeigen3-dev libyaml-cpp-dev libboost-dev libboost-test-dev
+      - name: build project
+        run: |
+          mkdir build
+          cd build
+          cmake ..
+          cmake --build .
+      - name: upload artifacts
+        run: tar -cvf build.tar ./build/
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-artifacts
+          path: build.tar
+  
+  test:
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+      - uses: actions/checkout@v6
+      - name: install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential clang-format libeigen3-dev libyaml-cpp-dev libboost-dev libboost-test-dev
+      - name: download artifacts
+        uses: actions/download-artifact@v6
+        with:
+          name: build-artifacts
+        run: tar -xvf build.tar
+
+      - name: run tests
+        working-directory: build
+        run: ctest --output-on-failure
