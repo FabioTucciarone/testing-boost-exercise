@@ -29,7 +29,9 @@ jobs:
           cd build
           cmake ..
           cmake --build .
-        run: tar -cvf build.tar ./build/
+      - name: compress
+        working-directory: build
+        run: tar -cvf build.tar build/
       - name: upload artifacts
         uses: actions/upload-artifact@v4
         with:
